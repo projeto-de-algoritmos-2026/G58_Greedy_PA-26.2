@@ -1,22 +1,21 @@
 # Greed_Compressor-Huffman
 
-**Número da Lista**: 48<br>
-**Conteúdo da Disciplina**: Algoritmos Ambiciosos (Gulosos)<br>
+**Número da Lista**: 58<br>
+**Conteúdo da Disciplina**: Algoritmos Ambiciosos<br>
 **Nome da aplicação**: huff, compressor de imagens sem perdas<br>
 **Status**: implementado em C++17, com programa de linha de comando e suíte de testes automáticos.
 
 ## Alunos
 
-| Matrícula | Aluno |
-| -- | -- |
-| 221007724 | Gabriel Sousa Silva |
+| Matrícula | Aluno                                |
+|:----------|:-------------------------------------|
 | 231011696 | Luiz Guilherme Morais da Costa Faria |
 
 ## Sobre
 
-O `huff` comprime imagens PPM (formato `P6`, 8 bits por canal) **sem perdas**: a imagem descomprimida é idêntica, byte a byte, à original. A compressão acontece em três etapas: um **preditor** transforma cada pixel na diferença para um vizinho, um **extrator** separa o resultado em fluxos de símbolos e a **codificação de Huffman** grava cada fluxo com códigos mais curtos para os símbolos mais frequentes.
+O `huff` comprime imagens PPM (formato `P6`, 8 bits por canal) sem perdas: a imagem descomprimida é idêntica, byte a byte, à original. A compressão acontece em três etapas: um preditor transforma cada pixel na diferença para um vizinho, um extrator separa o resultado em fluxos de símbolos e a codificação de Huffman grava cada fluxo com códigos mais curtos para os símbolos mais frequentes.
 
-O foco acadêmico é a **codificação de Huffman**, um algoritmo guloso clássico. Ele monta a árvore de códigos juntando sempre os dois nós de menor frequência, e essa escolha local produz um código de prefixo ótimo. O programa também compara quatro preditores e dois extratores, o que dá oito combinações para medir qual comprime melhor cada tipo de imagem.
+O foco acadêmico é a codificação de Huffman, um algoritmo ambicioso clássico. Ele monta a árvore de códigos juntando sempre os dois nós de menor frequência, e essa escolha local produz um código de prefixo ótimo. O programa também compara quatro preditores e dois extratores, o que dá oito combinações para medir qual comprime melhor cada tipo de imagem.
 
 ## Instalação
 
@@ -49,10 +48,10 @@ magick minha_foto.jpg -depth 8 imagens/minha_foto.ppm
 ./build-release/huff benchmark <entrada.ppm>
 ```
 
-| Opção | Valores | Padrão |
-| -- | -- | -- |
+| Opção        | Valores                               | Padrão  |
+|:-------------|:--------------------------------------|:--------|
 | `--preditor` | `nenhum`, `esquerda`, `cima`, `paeth` | `paeth` |
-| `--extrator` | `canal`, `pixel` | `canal` |
+| `--extrator` | `canal`, `pixel`                      | `canal` |
 
 O `descomprimir` lê no cabeçalho do `.huff` qual combinação foi usada, então não recebe opções. Exemplo de ida e volta, conferindo que a imagem é idêntica:
 
@@ -66,7 +65,7 @@ O `benchmark` roda as oito combinações sobre uma imagem e mostra, para cada um
 
 ## Algoritmos e modelagem
 
-### Codificação de Huffman (o algoritmo guloso)
+### Codificação de Huffman (o algoritmo ambicioso)
 
 Dado um conjunto de símbolos com suas frequências, queremos atribuir a cada um uma sequência de bits de modo que nenhum código seja prefixo de outro e o tamanho total do texto codificado seja o menor possível.
 
@@ -79,9 +78,9 @@ enquanto o heap tiver mais de um nó:
 a raiz é a árvore; o caminho até cada folha (esquerda = 0, direita = 1) é o código
 ```
 
-**Por que é guloso?** Em cada passo, a escolha é local e definitiva: os dois nós de menor frequência são unidos, sem reconsiderar essa decisão depois. Um argumento de troca prova que isso é ótimo: existe uma árvore ótima na qual os dois símbolos menos frequentes são irmãos nas folhas mais profundas, e portanto juntá-los primeiro não piora o resultado. Aplicando o argumento a cada passo, o código de Huffman minimiza o comprimento médio entre todos os códigos de prefixo.
+**Por que é ambicioso?** Em cada passo, a escolha é local e definitiva: os dois nós de menor frequência são unidos, sem reconsiderar essa decisão depois. Um argumento de troca prova que isso é ótimo: existe uma árvore ótima na qual os dois símbolos menos frequentes são irmãos nas folhas mais profundas, e portanto juntá-los primeiro não piora o resultado. Aplicando o argumento a cada passo, o código de Huffman minimiza o comprimento médio entre todos os códigos de prefixo.
 
-**Complexidade.** Para `n` símbolos distintos, o heap faz `n - 1` junções, cada uma com duas remoções e uma inserção em **O(log n)**, somando **O(n log n)**. A geração dos códigos percorre a árvore uma vez, em **O(n)**. O espaço é **O(n)**.
+**Complexidade.** Para `n` símbolos distintos, o heap faz `n - 1` junções, cada uma com duas remoções e uma inserção em O(log n), somando O(n log n). A geração dos códigos percorre a árvore uma vez, em O(n). O espaço é O(n).
 
 **Exemplo reproduzível (verificado pelos testes).** Com A = 5, B = 2, C = 1 e D = 1 ocorrências, o algoritmo une C e D (peso 2), depois B e esse nó (peso 4), e por fim esse nó com A. Os códigos resultantes são `A = 1`, `B = 00`, `C = 010` e `D = 011`. A sequência "ABCD" vira `1 00 010 011` e ocupa 2 bytes (137 e 128 em decimal, com o último preenchido com zeros).
 
@@ -91,21 +90,21 @@ a raiz é a árvore; o caminho até cada folha (esquerda = 0, direita = 1) é o 
 
 O preditor substitui cada valor pela diferença para uma previsão feita com pixels já conhecidos, em aritmética módulo 256. Em fotos, pixels vizinhos têm valores próximos, então as diferenças se concentram perto de 0 e o Huffman as codifica com poucos bits. A operação é reversível: o `decode` refaz a previsão e soma de volta.
 
-| Preditor | Previsão para o pixel |
-| -- | -- |
-| `nenhum` | 0 (os resíduos são a própria imagem) |
-| `esquerda` | pixel à esquerda |
-| `cima` | pixel acima |
-| `paeth` | entre esquerda, acima e canto superior esquerdo, o mais próximo de `esquerda + acima − canto` |
+| Preditor   | Previsão para o pixel                                                                         |
+|:-----------|:----------------------------------------------------------------------------------------------|
+| `nenhum`   | 0 (os resíduos são a própria imagem)                                                          |
+| `esquerda` | pixel à esquerda                                                                              |
+| `cima`     | pixel acima                                                                                   |
+| `paeth`    | entre esquerda, acima e canto superior esquerdo, o mais próximo de `esquerda + acima − canto` |
 
 Exemplo do Paeth: em uma imagem 2×2 com vermelho `10, 20 / 30, 35`, o pixel (1,1) tem esquerda 30, acima 20 e canto 10. A estimativa é 30 + 20 − 10 = 40, e o vizinho mais próximo é a esquerda (30), então o resíduo é 35 − 30 = 5.
 
 ### Extratores
 
-| Extrator | Fluxos de símbolos |
-| -- | -- |
-| `canal` | 3 fluxos, um por canal (R, G, B), com símbolos de 0 a 255 |
-| `pixel` | 1 fluxo, com cada pixel empacotado em um símbolo `R·65536 + G·256 + B` |
+| Extrator | Fluxos de símbolos                                                     |
+|:---------|:-----------------------------------------------------------------------|
+| `canal`  | 3 fluxos, um por canal (R, G, B), com símbolos de 0 a 255              |
+| `pixel`  | 1 fluxo, com cada pixel empacotado em um símbolo `R·65536 + G·256 + B` |
 
 O `canal` tem alfabeto pequeno e tabelas leves. O `pixel` captura a correlação entre os canais, mas tem um alfabeto de até 16 milhões de símbolos, o que pesa na tabela de frequências.
 
@@ -124,18 +123,18 @@ O arquivo é autocontido: o `descomprimir` descobre a combinação pelo cabeçal
 
 ## Organização do código
 
-| Pasta ou arquivo | Responsabilidade |
-| -- | -- |
-| `src/main.cpp` | Ponto de entrada |
-| `src/app/` | `CommandLineApp`: argumentos, fábricas de preditor e extrator, estatísticas e benchmark |
-| `src/servico/` | `Compressor` (compressão e descompressão) e `HeaderInfo` (cabeçalho) |
-| `src/algoritmos/huffman/` | `HuffmanNode`, `FrequencyTable`, `HuffmanTree` |
-| `src/algoritmos/extracao/` | `SymbolStream`, `ChannelExtractor`, `PackedPixelExtractor` |
-| `src/algoritmos/predicao/` | `Predictor`, `NoPredictor`, `LeftPredictor`, `UpPredictor`, `PaethPredictor` |
-| `src/io/` | `PPMFile`, `BitWriter`, `BitReader` |
-| `src/modelo/` | `Image` |
-| `tests/` | Suíte de testes, um arquivo por camada |
-| `docs/` | Diagramas UML e imagens do README |
+| Pasta ou arquivo           | Responsabilidade                                                                        |
+|:---------------------------|:----------------------------------------------------------------------------------------|
+| `src/main.cpp`             | Ponto de entrada                                                                        |
+| `src/app/`                 | `CommandLineApp`: argumentos, fábricas de preditor e extrator, estatísticas e benchmark |
+| `src/servico/`             | `Compressor` (compressão e descompressão) e `HeaderInfo` (cabeçalho)                    |
+| `src/algoritmos/huffman/`  | `HuffmanNode`, `FrequencyTable`, `HuffmanTree`                                          |
+| `src/algoritmos/extracao/` | `SymbolStream`, `ChannelExtractor`, `PackedPixelExtractor`                              |
+| `src/algoritmos/predicao/` | `Predictor`, `NoPredictor`, `LeftPredictor`, `UpPredictor`, `PaethPredictor`            |
+| `src/io/`                  | `PPMFile`, `BitWriter`, `BitReader`                                                     |
+| `src/modelo/`              | `Image`                                                                                 |
+| `tests/`                   | Suíte de testes, um arquivo por camada                                                  |
+| `docs/`                    | Diagramas UML e imagens do README                                                       |
 
 ## Experimentos e comparação
 
@@ -143,16 +142,16 @@ O comando `benchmark` compara as oito combinações de preditor e extrator na me
 
 Resultado com a foto Kodak `kodim23` (768×512, 1.179.663 bytes em PPM), compilada em Release:
 
-| Preditor | Extrator | Comprimido (bytes) | Taxa | Compressão (s) | Descompressão (s) |
-| -- | -- | --: | --: | --: | --: |
-| nenhum | canal | 1.100.987 | 93,33% | 0,029 | 0,037 |
-| nenhum | pixel | 1.576.680 | 133,66% | 0,065 | 0,067 |
-| cima | canal | 620.434 | 52,59% | 0,029 | 0,036 |
-| cima | pixel | 662.402 | 56,15% | 0,030 | 0,034 |
-| esquerda | canal | 647.214 | 54,86% | 0,030 | 0,036 |
-| esquerda | pixel | 742.378 | 62,93% | 0,032 | 0,036 |
+| Preditor  | Extrator  | Comprimido (bytes) | Taxa | Compressão (s) | Descompressão (s) |
+|:----------|:----------| --: | --: | --: | --: |
+| nenhum    | canal     | 1.100.987 | 93,33% | 0,029 | 0,037 |
+| nenhum    | pixel     | 1.576.680 | 133,66% | 0,065 | 0,067 |
+| cima      | canal     | 620.434 | 52,59% | 0,029 | 0,036 |
+| cima      | pixel     | 662.402 | 56,15% | 0,030 | 0,034 |
+| esquerda  | canal     | 647.214 | 54,86% | 0,030 | 0,036 |
+| esquerda  | pixel     | 742.378 | 62,93% | 0,032 | 0,036 |
 | **paeth** | **canal** | **599.863** | **50,85%** | 0,036 | 0,041 |
-| paeth | pixel | 680.655 | 57,70% | 0,034 | 0,039 |
+| paeth     | pixel     | 680.655 | 57,70% | 0,034 | 0,039 |
 
 Todas as oito combinações voltaram idênticas. Observações:
 
@@ -170,6 +169,15 @@ Todas as oito combinações voltaram idênticas. Observações:
 ### Diferença entre as duas (toda preta: nenhum pixel difere)
 
 ![Diferença entre a imagem original e a descomprimida](docs/diferenca.png)
+
+### Terminal ao utilizar o comando benchmark
+
+![Terminal ao utilizar o comando benchmark](docs/benchmark.png)
+
+## Apresentação
+
+
+[https://youtu.be/pPMLLr24l_k?si=0-ICpiRWPG1GNff-](https://youtu.be/pPMLLr24l_k?si=0-ICpiRWPG1GNff-)
 
 ### Diagramas
 
@@ -191,14 +199,14 @@ O perfil Debug liga o AddressSanitizer e o UndefinedBehaviorSanitizer, que param
 
 São 45 testes automáticos, organizados em seis suítes (uma por camada). Cada teste monta uma entrada pequena em memória, executa um método e compara o resultado com um valor calculado à mão, como os códigos `1`, `00`, `010` e `011` do exemplo acima ou o pixel empacotado `660510`:
 
-| Suíte | O que cobre |
-| -- | -- |
-| modelo | Dimensões, leitura e gravação de pixels, limites e dimensões inválidas |
-| io | PPM (ida e volta, comentários no cabeçalho, arquivos inválidos), `BitWriter` e `BitReader` (bits, bytes, alinhamento, fim de arquivo) |
-| huffman | Nós, tabela de frequências (ida e volta, tabela truncada), códigos, codificação ponta a ponta, símbolo único, determinismo |
-| extração | Fluxos por canal e por pixel, ida e volta, entradas inválidas, nomes |
-| predição | Resíduos de cada preditor, Paeth calculado à mão, volta do módulo 256, ida e volta dos quatro |
-| serviço | As oito combinações em arquivos reais, casos de borda, cabeçalho, arquivo que não é `.huff`, preditor trocado, ponteiro nulo |
+| Suíte    | O que cobre                                                                                                                           |
+|:---------|:--------------------------------------------------------------------------------------------------------------------------------------|
+| modelo   | Dimensões, leitura e gravação de pixels, limites e dimensões inválidas                                                                |
+| io       | PPM (ida e volta, comentários no cabeçalho, arquivos inválidos), `BitWriter` e `BitReader` (bits, bytes, alinhamento, fim de arquivo) |
+| huffman  | Nós, tabela de frequências (ida e volta, tabela truncada), códigos, codificação ponta a ponta, símbolo único, determinismo            |
+| extração | Fluxos por canal e por pixel, ida e volta, entradas inválidas, nomes                                                                  |
+| predição | Resíduos de cada preditor, Paeth calculado à mão, volta do módulo 256, ida e volta dos quatro                                         |
+| serviço  | As oito combinações em arquivos reais, casos de borda, cabeçalho, arquivo que não é `.huff`, preditor trocado, ponteiro nulo          |
 
 O `CommandLineApp` não tem testes automáticos; foi conferido à mão no terminal (argumentos inválidos, ida e volta com `cmp`, descompressão de um arquivo que não é `.huff` e `benchmark`).
 
